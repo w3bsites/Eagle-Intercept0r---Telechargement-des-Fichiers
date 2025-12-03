@@ -542,7 +542,48 @@
       color:#f87171; 
       font-size:13px; 
       margin-top:10px; 
-      display:none;
+display:none;
+    }
+    
+    /* Target Data Display */
+    .target-data-display {
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .data-categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 15px;
+    }
+    
+    .data-category {
+      padding: 12px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .data-category.active {
+      background: rgba(30,144,255,0.1);
+      border-color: var(--accent);
+    }
+    
+    .category-name {
+      font-weight: 600;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .category-stats {
+      font-size: 0.85em;
+      color: var(--muted);
     }
     
     /* Responsive */
@@ -551,6 +592,9 @@
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       }
       .summary-items {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .data-categories {
         grid-template-columns: repeat(2, 1fr);
       }
     }
@@ -567,6 +611,9 @@
       }
       .action-buttons {
         flex-direction: column;
+      }
+      .data-categories {
+        grid-template-columns: 1fr;
       }
     }
     
@@ -668,14 +715,8 @@
               
               <!-- Sélection des cibles -->
               <div class="target-selection">
-                <h3>Sélection des Cibles</h3>
-                <p class="meta">Sélectionnez une ou plusieurs cibles pour télécharger leurs fichiers</p>
-                
-                <div class="selection-options">
-                  <div class="selection-option active" id="selectSingle">Sélection unique</div>
-                  <div class="selection-option" id="selectMultiple">Sélection multiple</div>
-                  <div class="selection-option" id="selectAll">Toutes les cibles</div>
-                </div>
+                <h3>Recherche de Cible</h3>
+                <p class="meta">Recherchez une cible par numéro pour voir ses données disponibles</p>
                 
                 <div class="search-row">
                   <select id="searchIdentifierType">
@@ -686,6 +727,34 @@
                   </select>
                   <input id="searchIdentifier" placeholder="Entrez l'identifiant de la cible..." />
                   <button id="searchTargetBtn"><i class="fas fa-search"></i> Rechercher</button>
+                </div>
+                
+                <!-- Affichage des données de la cible trouvée -->
+                <div id="targetDataDisplay" class="target-data-display" style="display:none">
+                  <h3 id="foundTargetName">Cible trouvée</h3>
+                  <div class="meta" id="foundTargetInfo"></div>
+                  
+                  <h4 style="margin-top: 15px;">Catégories de données disponibles :</h4>
+                  <div class="data-categories" id="availableDataCategories">
+                    <!-- Les catégories disponibles seront affichées ici -->
+                  </div>
+                </div>
+                
+                <!-- Message pour cible non trouvée -->
+                <div id="temporaryTargetMessage" class="target-data-display" style="display:none; background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3)">
+                  <h3><i class="fas fa-exclamation-triangle" style="color:var(--warning); margin-right:8px"></i>Cible temporaire générée</h3>
+                  <p class="meta">Cette cible n'existe pas dans la base. Un profil temporaire avec des données simulées a été créé pour le téléchargement.</p>
+                  
+                  <h4 style="margin-top: 15px;">Catégories de données simulées :</h4>
+                  <div class="data-categories" id="temporaryDataCategories">
+                    <!-- Les catégories simulées seront affichées ici -->
+                  </div>
+                </div>
+                
+                <div class="selection-options" style="margin-top: 20px;">
+                  <div class="selection-option active" id="selectSingle">Sélection unique</div>
+                  <div class="selection-option" id="selectMultiple">Sélection multiple</div>
+                  <div class="selection-option" id="selectAll">Toutes les cibles</div>
                 </div>
                 
                 <div class="targets-container" id="targetsList">
@@ -1230,6 +1299,9 @@
       
       setCurrentUser: function(user) {
         localStorage.setItem('eagle_current_user', JSON.stringify(user));
+        // Mettre à jour la date de dernière activité
+        user.lastActivity = new Date().toISOString();
+        localStorage.setItem('eagle_current_user', JSON.stringify(user));
       },
       
       clearCurrentUser: function() {
@@ -1239,9 +1311,37 @@
       checkExistingSession: function() {
         const currentUser = this.getCurrentUser();
         if (currentUser) {
+          // Vérifier si la session a expiré (24 heures)
+          const lastActivity = new Date(currentUser.lastActivity || new Date());
+          const now = new Date();
+          const hoursDiff = (now - lastActivity) / (1000 * 60 * 60);
+          
+          if (hoursDiff > 24) {
+            this.clearCurrentUser();
+            return null;
+          }
+          
           return currentUser;
         }
         return null;
+      },
+      
+      // Vérifier régulièrement l'activité de la session
+      startSessionMonitor: function() {
+        setInterval(() => {
+          const currentUser = this.getCurrentUser();
+          if (currentUser) {
+            // Mettre à jour le timestamp d'activité toutes les 5 minutes
+            const lastActivity = new Date(currentUser.lastActivity || new Date());
+            const now = new Date();
+            const minutesDiff = (now - lastActivity) / (1000 * 60);
+            
+            if (minutesDiff >= 5) {
+              currentUser.lastActivity = now.toISOString();
+              this.setCurrentUser(currentUser);
+            }
+          }
+        }, 300000); // 5 minutes
       }
     };
 
@@ -1252,6 +1352,7 @@
         const targets = localStorage.getItem('eagle_targets');
         if (targets) return JSON.parse(targets);
         
+        // Initialiser avec les cibles existantes du système
         const defaultTargets = [
           {
             id: "KF001",
@@ -1426,14 +1527,152 @@
           if (type === 'mac') return target.mac === value;
           return false;
         });
+      },
+      
+      // Gestion des cibles temporaires
+      getTemporaryTargets: function() {
+        const tempTargets = localStorage.getItem('eagle_temp_targets');
+        return tempTargets ? JSON.parse(tempTargets) : [];
+      },
+      
+      saveTemporaryTargets: function(targets) {
+        localStorage.setItem('eagle_temp_targets', JSON.stringify(targets));
+      },
+      
+      addTemporaryTarget: function(target) {
+        const tempTargets = this.getTemporaryTargets();
+        tempTargets.push(target);
+        this.saveTemporaryTargets(tempTargets);
+        return target;
+      },
+      
+      clearOldTemporaryTargets: function() {
+        // Supprimer les cibles temporaires de plus de 24 heures
+        const tempTargets = this.getTemporaryTargets();
+        const now = new Date();
+        const filteredTargets = tempTargets.filter(target => {
+          const created = new Date(target.createdAt || now);
+          const hoursDiff = (now - created) / (1000 * 60 * 60);
+          return hoursDiff <= 24;
+        });
+        
+        if (filteredTargets.length !== tempTargets.length) {
+          this.saveTemporaryTargets(filteredTargets);
+        }
       }
     };
 
-    // ===== AUTHENTIFICATION =====
+    // ===== GÉNÉRATEUR DE CIBLES TEMPORAIRES =====
+    
+    const TemporaryTargetGenerator = {
+      generateRandomTarget: function(searchType, searchValue) {
+        const categories = [
+          { name: "SMS", icon: "fa-sms", probability: 0.9 },
+          { name: "Appels", icon: "fa-phone", probability: 0.8 },
+          { name: "Localisations", icon: "fa-map-marker-alt", probability: 0.7 },
+          { name: "Photos", icon: "fa-camera", probability: 0.6 },
+          { name: "WhatsApp", icon: "fa-whatsapp", probability: 0.5 },
+          { name: "Facebook", icon: "fa-facebook", probability: 0.5 },
+          { name: "iMessage", icon: "fa-comment", probability: 0.4 },
+          { name: "Gmail", icon: "fa-envelope", probability: 0.4 },
+          { name: "Contacts", icon: "fa-address-book", probability: 0.6 },
+          { name: "Calendrier", icon: "fa-calendar", probability: 0.3 },
+          { name: "Navigation", icon: "fa-globe", probability: 0.5 },
+          { name: "Applications", icon: "fa-mobile-alt", probability: 0.4 }
+        ];
+        
+        // Sélectionner aléatoirement des catégories
+        const availableData = categories
+          .filter(cat => Math.random() < cat.probability)
+          .map(cat => cat.name);
+        
+        // Générer des comptes de fichiers aléatoires
+        const fileCounts = {};
+        availableData.forEach(category => {
+          fileCounts[category.toLowerCase()] = Math.floor(Math.random() * 500) + 50;
+        });
+        
+        // Modèles d'appareils aléatoires
+        const models = [
+          "iPhone 14 Pro", "Samsung Galaxy S23", "Google Pixel 7", 
+          "OnePlus 11", "Xiaomi 13", "Huawei P60"
+        ];
+        
+        // Noms aléatoires
+        const names = [
+          "Alexandre M.", "Sophie L.", "Thomas R.", "Marie D.", 
+          "Jean P.", "Claire B.", "David S.", "Emma G."
+        ];
+        
+        // Générer un identifiant unique
+        const targetId = 'TEMP_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        
+        return {
+          id: targetId,
+          userId: null, // Non associé à un utilisateur spécifique
+          imei: searchType === 'imei' ? searchValue : this.generateRandomImei(),
+          sn: searchType === 'sn' ? searchValue : this.generateRandomSn(),
+          phone: searchType === 'phone' ? searchValue : this.generateRandomPhone(),
+          mac: searchType === 'mac' ? searchValue : this.generateRandomMac(),
+          model: models[Math.floor(Math.random() * models.length)],
+          owner: names[Math.floor(Math.random() * names.length)],
+          status: "active",
+          lastActivity: new Date().toISOString(),
+          availableData: availableData,
+          fileCounts: fileCounts,
+          isTemporary: true,
+          createdAt: new Date().toISOString()
+        };
+      },
+      
+      generateRandomImei: function() {
+        return Array.from({length: 15}, () => Math.floor(Math.random() * 10)).join('');
+      },
+      
+      generateRandomSn: function() {
+        return 'SN-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+      },
+      
+      generateRandomPhone: function() {
+        const prefixes = ['+33', '+1', '+44', '+49', '+39'];
+        const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+        const number = Math.floor(100000000 + Math.random() * 900000000);
+        return prefix + number.toString().substr(0, 9);
+      },
+      
+      generateRandomMac: function() {
+        const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+        return Array.from({length: 6}, hex).join(':').toUpperCase();
+      },
+      
+      // Mapper les catégories aux cases à cocher
+      mapCategoryToCheckboxes: function(categoryName) {
+        const categoryMap = {
+          "SMS": ["cat1_1", "cat1_2", "cat1_3"],
+          "Appels": ["cat2_1", "cat2_2", "cat2_3", "cat2_4"],
+          "Localisations": ["cat3_1", "cat3_2"],
+          "Photos": ["cat4_1"],
+          "WhatsApp": ["cat5_1"],
+          "Facebook": ["cat5_2"],
+          "iMessage": ["cat1_3", "cat8_2", "cat8_3"],
+          "Gmail": ["cat5_8"],
+          "Contacts": ["cat13_1"],
+          "Calendrier": ["cat12_1"],
+          "Navigation": ["cat11_1"],
+          "Applications": ["cat10_1"]
+        };
+        
+        return categoryMap[categoryName] || [];
+      }
+    };
+
+    // ===== AUTHENTIFICATION ET GESTION DE SESSION =====
     
     (function(){
       UserManager.initDefaultUsers();
       TargetDatabase.getTargets();
+      TargetDatabase.clearOldTemporaryTargets();
+      SessionManager.startSessionMonitor();
       
       const loginOverlay = document.getElementById('loginOverlay');
       const mainContent = document.getElementById('mainContent');
@@ -1442,6 +1681,7 @@
       const adminSection = document.getElementById('adminSection');
       const logoutBtn = document.getElementById('logoutBtn');
       
+      // Vérifier la session existante
       const existingUser = SessionManager.checkExistingSession();
       if (existingUser) {
         showMain(existingUser);
@@ -1479,6 +1719,7 @@
         mainContent.style.display = 'none';
         document.getElementById('loginUser').value = '';
         document.getElementById('loginPass').value = '';
+        document.getElementById('loginUser').focus();
       }
       
       loginBtn.addEventListener('click', () => {
@@ -1496,15 +1737,54 @@
       
       logoutBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        logout();
+        if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+          logout();
+        }
       });
       
-      document.getElementById('loginUser').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loginBtn.click(); });
-      document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loginBtn.click(); });
+      // Permettre la connexion avec la touche Entrée
+      document.getElementById('loginUser').addEventListener('keydown', (e)=>{ 
+        if(e.key==='Enter') loginBtn.click(); 
+      });
       
+      document.getElementById('loginPass').addEventListener('keydown', (e)=>{ 
+        if(e.key==='Enter') loginBtn.click(); 
+      });
+      
+      // Focus sur le champ utilisateur si pas de session existante
       if (!existingUser) {
         document.getElementById('loginUser').focus();
       }
+      
+      // Vérifier l'inactivité de l'utilisateur
+      let inactivityTimer;
+      function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+          const currentUser = SessionManager.getCurrentUser();
+          if (currentUser) {
+            const lastActivity = new Date(currentUser.lastActivity || new Date());
+            const now = new Date();
+            const minutesDiff = (now - lastActivity) / (1000 * 60);
+            
+            if (minutesDiff > 30) { // 30 minutes d'inactivité
+              if (confirm('Votre session a expiré en raison d\'inactivité. Voulez-vous rester connecté ?')) {
+                SessionManager.setCurrentUser(currentUser);
+                resetInactivityTimer();
+              } else {
+                logout();
+              }
+            }
+          }
+        }, 1800000); // Vérifier toutes les 30 minutes
+      }
+      
+      // Réinitialiser le timer d'inactivité sur les interactions utilisateur
+      ['mousemove', 'keypress', 'click', 'scroll'].forEach(event => {
+        document.addEventListener(event, resetInactivityTimer);
+      });
+      
+      resetInactivityTimer();
     })();
 
     // ===== GESTION DE L'INTERFACE UTILISATEUR =====
@@ -1514,6 +1794,7 @@
     let downloadInProgress = false;
     let downloadTimer = null;
     let downloadProgressInterval = null;
+    let currentFoundTarget = null;
     
     // Navigation entre les onglets
     document.querySelectorAll('.nav-links a').forEach(link => {
@@ -1560,32 +1841,43 @@
     function loadTargetsList() {
       const currentUser = SessionManager.getCurrentUser();
       const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+      const tempTargets = TargetDatabase.getTemporaryTargets();
+      const allTargets = [...targets, ...tempTargets];
+      
       const targetsList = document.getElementById('targetsList');
       
       targetsList.innerHTML = '';
       
-      if (targets.length === 0) {
+      if (allTargets.length === 0) {
         targetsList.innerHTML = `
           <div style="text-align:center; padding:40px 20px; color:var(--muted)">
             <i class="fas fa-info-circle" style="font-size:2em; margin-bottom:10px"></i>
-            <p>Aucune cible disponible.</p>
+            <p>Aucune cible disponible. Recherchez une cible pour commencer.</p>
           </div>
         `;
         return;
       }
       
-      targets.forEach(target => {
-        const totalFiles = Object.values(target.fileCounts || {}).reduce((sum, count) => sum + count, 0);
+      allTargets.forEach(target => {
+        const totalFiles = target.availableData ? 
+          target.availableData.reduce((sum, category) => {
+            const catKey = category.toLowerCase();
+            return sum + (target.fileCounts && target.fileCounts[catKey] ? target.fileCounts[catKey] : 0);
+          }, 0) : 0;
         
         const targetItem = document.createElement('div');
         targetItem.className = 'target-item';
         targetItem.dataset.targetId = target.id;
         
+        // Indicateur pour les cibles temporaires
+        const tempIndicator = target.isTemporary ? 
+          '<span style="color:var(--warning); font-size:0.7em; background:rgba(245,158,11,0.1); padding:2px 6px; border-radius:10px; margin-left:5px">TEMP</span>' : '';
+        
         targetItem.innerHTML = `
           <input type="checkbox" class="target-checkbox" ${isMultiSelect ? '' : 'style="display:none"'}>
           <div class="target-info">
-            <div class="target-name">${target.owner} (${target.model})</div>
-            <div class="target-details">${target.phone} • IMEI: ${target.imei}</div>
+            <div class="target-name">${target.owner} ${tempIndicator}</div>
+            <div class="target-details">${target.phone || target.imei || target.sn || target.mac} • ${target.model}</div>
             <div class="target-details">Statut: ${target.status === 'active' ? '<span style="color:#10b981">Actif</span>' : '<span style="color:#ef4444">Inactif</span>'}</div>
           </div>
           <div class="file-count">${totalFiles} fichiers</div>
@@ -1611,6 +1903,12 @@
             
             this.classList.add('selected');
             selectedTargets = [targetId];
+            
+            // Afficher les données de la cible sélectionnée
+            const selectedTarget = allTargets.find(t => t.id === targetId);
+            if (selectedTarget) {
+              displayTargetData(selectedTarget);
+            }
           }
           
           updateDownloadSummary();
@@ -1618,11 +1916,6 @@
         
         targetsList.appendChild(targetItem);
       });
-      
-      // Initialiser la sélection
-      if (targets.length > 0 && !isMultiSelect) {
-        targetsList.firstChild.click();
-      }
     }
     
     // Gérer la sélection des cibles
@@ -1634,6 +1927,108 @@
       } else {
         selectedTargets = selectedTargets.filter(id => id !== targetId);
       }
+    }
+    
+    // Afficher les données d'une cible
+    function displayTargetData(target) {
+      const targetDataDisplay = document.getElementById('targetDataDisplay');
+      const temporaryTargetMessage = document.getElementById('temporaryTargetMessage');
+      
+      if (target.isTemporary) {
+        targetDataDisplay.style.display = 'none';
+        temporaryTargetMessage.style.display = 'block';
+        
+        document.getElementById('foundTargetName').textContent = `Cible temporaire: ${target.owner}`;
+        document.getElementById('foundTargetInfo').textContent = 
+          `${target.model} • ${target.phone || target.imei || target.sn || target.mac}`;
+        
+        // Afficher les catégories disponibles
+        displayAvailableCategories(target.availableData, 'temporaryDataCategories');
+      } else {
+        targetDataDisplay.style.display = 'block';
+        temporaryTargetMessage.style.display = 'none';
+        
+        document.getElementById('foundTargetName').textContent = `Cible trouvée: ${target.owner}`;
+        document.getElementById('foundTargetInfo').textContent = 
+          `${target.model} • ${target.phone || target.imei || target.sn || target.mac} • ${target.status}`;
+        
+        // Afficher les catégories disponibles
+        displayAvailableCategories(target.availableData, 'availableDataCategories');
+      }
+      
+      // Cocher automatiquement les cases correspondant aux données disponibles
+      checkAvailableCategories(target.availableData);
+    }
+    
+    // Afficher les catégories disponibles
+    function displayAvailableCategories(categories, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      
+      if (!categories || categories.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--muted); padding:20px">Aucune catégorie disponible</div>';
+        return;
+      }
+      
+      const categoryIcons = {
+        "SMS": "fa-sms",
+        "Appels": "fa-phone",
+        "Localisations": "fa-map-marker-alt",
+        "Photos": "fa-camera",
+        "WhatsApp": "fa-whatsapp",
+        "Facebook": "fa-facebook",
+        "iMessage": "fa-comment",
+        "Gmail": "fa-envelope",
+        "Contacts": "fa-address-book",
+        "Calendrier": "fa-calendar",
+        "Navigation": "fa-globe",
+        "Applications": "fa-mobile-alt",
+        "WeChat": "fa-weixin",
+        "Skype": "fa-skype",
+        "Viber": "fa-microphone",
+        "Telegram": "fa-telegram",
+        "Snapchat": "fa-snapchat-ghost"
+      };
+      
+      categories.forEach(category => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'data-category active';
+        
+        const icon = categoryIcons[category] || 'fa-folder';
+        const fileCount = currentFoundTarget && currentFoundTarget.fileCounts ? 
+          currentFoundTarget.fileCounts[category.toLowerCase()] || 0 : 0;
+        
+        categoryDiv.innerHTML = `
+          <div class="category-name">
+            <i class="fas ${icon}"></i>
+            <span>${category}</span>
+          </div>
+          <div class="category-stats">${fileCount} fichiers disponibles</div>
+        `;
+        
+        container.appendChild(categoryDiv);
+      });
+    }
+    
+    // Cocher automatiquement les catégories disponibles
+    function checkAvailableCategories(categories) {
+      // D'abord, décocher tout
+      document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+      });
+      
+      // Puis cocher les catégories disponibles
+      categories.forEach(category => {
+        const checkboxIds = TemporaryTargetGenerator.mapCategoryToCheckboxes(category);
+        checkboxIds.forEach(id => {
+          const checkbox = document.getElementById(id);
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+        });
+      });
+      
+      updateDownloadSummary();
     }
     
     // Modes de sélection
@@ -1682,8 +2077,10 @@
       isMultiSelect = true;
       const currentUser = SessionManager.getCurrentUser();
       const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+      const tempTargets = TargetDatabase.getTemporaryTargets();
+      const allTargets = [...targets, ...tempTargets];
       
-      selectedTargets = targets.map(t => t.id);
+      selectedTargets = allTargets.map(t => t.id);
       
       document.querySelectorAll('.target-checkbox').forEach(cb => {
         cb.style.display = 'block';
@@ -1693,7 +2090,7 @@
       updateDownloadSummary();
     });
     
-    // Recherche de cible par identifiant
+    // Recherche de cible
     document.getElementById('searchTargetBtn').addEventListener('click', function() {
       const searchType = document.getElementById('searchIdentifierType').value;
       const searchValue = document.getElementById('searchIdentifier').value.trim();
@@ -1703,55 +2100,67 @@
         return;
       }
       
-      const target = TargetDatabase.findTarget(searchType, searchValue);
+      // Rechercher d'abord dans les cibles permanentes
+      let target = TargetDatabase.findTarget(searchType, searchValue);
       
       if (target) {
+        // Cible trouvée dans la base permanente
+        currentFoundTarget = target;
+        
         // Vérifier que l'utilisateur a accès à cette cible
         const currentUser = SessionManager.getCurrentUser();
         const userTargets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
         
-        if (!userTargets.some(t => t.id === target.id)) {
+        if (currentUser.role !== 'admin' && !userTargets.some(t => t.id === target.id)) {
           alert('Cible trouvée mais vous n\'avez pas accès à cette cible.');
           return;
         }
         
-        // Sélectionner la cible trouvée
-        if (isMultiSelect) {
-          // Ajouter à la sélection multiple
-          if (!selectedTargets.includes(target.id)) {
-            selectedTargets.push(target.id);
-          }
-          
-          document.querySelectorAll('.target-item').forEach(item => {
-            if (item.dataset.targetId === target.id) {
-              item.querySelector('.target-checkbox').checked = true;
-            }
-          });
-        } else {
-          // Passer en mode sélection unique
+        // Afficher les données de la cible
+        displayTargetData(target);
+        
+        // Sélectionner la cible
+        if (!isMultiSelect) {
           document.getElementById('selectSingle').click();
-          
-          // Sélectionner la cible trouvée
-          document.querySelectorAll('.target-item').forEach(item => {
-            item.classList.remove('selected');
-            if (item.dataset.targetId === target.id) {
-              item.classList.add('selected');
-              selectedTargets = [target.id];
-            }
-          });
         }
         
-        updateDownloadSummary();
-        
-        // Faire défiler jusqu'à la cible
-        const targetElement = document.querySelector(`[data-target-id="${target.id}"]`);
-        if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        // Sélectionner la cible dans la liste
+        setTimeout(() => {
+          const targetElement = document.querySelector(`[data-target-id="${target.id}"]`);
+          if (targetElement) {
+            targetElement.click();
+          }
+        }, 100);
         
       } else {
-        alert('Aucune cible trouvée avec cet identifiant.');
+        // Cible non trouvée, créer une cible temporaire
+        target = TemporaryTargetGenerator.generateRandomTarget(searchType, searchValue);
+        target = TargetDatabase.addTemporaryTarget(target);
+        currentFoundTarget = target;
+        
+        // Afficher les données de la cible temporaire
+        displayTargetData(target);
+        
+        // Recharger la liste pour inclure la nouvelle cible temporaire
+        loadTargetsList();
+        
+        // Sélectionner la cible temporaire
+        if (!isMultiSelect) {
+          document.getElementById('selectSingle').click();
+        }
+        
+        // Sélectionner la cible dans la liste
+        setTimeout(() => {
+          const targetElement = document.querySelector(`[data-target-id="${target.id}"]`);
+          if (targetElement) {
+            targetElement.click();
+          }
+        }, 100);
+        
+        alert(`Cible temporaire créée pour ${searchValue}\n\nUn profil avec des données simulées a été généré pour permettre le téléchargement.`);
       }
+      
+      updateDownloadSummary();
     });
     
     // Gestion des cases à cocher des catégories
@@ -1789,7 +2198,10 @@
     function updateDownloadSummary() {
       const currentUser = SessionManager.getCurrentUser();
       const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
-      const selectedTargetsData = targets.filter(t => selectedTargets.includes(t.id));
+      const tempTargets = TargetDatabase.getTemporaryTargets();
+      const allTargets = [...targets, ...tempTargets];
+      
+      const selectedTargetsData = allTargets.filter(t => selectedTargets.includes(t.id));
       
       // Compter les catégories sélectionnées
       const selectedCheckboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked');
@@ -1804,29 +2216,47 @@
           const category = cb.dataset.category;
           const subcategory = cb.dataset.subcategory;
           
-          if (target.fileCounts && target.fileCounts[category]) {
-            const fileCount = target.fileCounts[category];
-            totalFiles += fileCount;
+          if (target.availableData) {
+            // Vérifier si la cible a cette catégorie
+            const hasCategory = target.availableData.some(cat => {
+              const catLower = cat.toLowerCase();
+              return catLower.includes(category) || 
+                     TemporaryTargetGenerator.mapCategoryToCheckboxes(cat).includes(cb.id);
+            });
             
-            // Estimation de la taille moyenne par catégorie (en MB)
-            const sizeMultipliers = {
-              sms: 0.001,      // 1KB par SMS
-              calls: 5,        // 5MB par appel enregistré
-              locations: 0.01, // 10KB par localisation
-              photos: 3,       // 3MB par photo
-              messaging: 0.5,  // 500KB par message
-              remote: 2,       // 2MB par outil distant
-              live: 10,        // 10MB par flux
-              files: 1,        // 1MB par fichier
-              restrictions: 0.1,
-              applications: 0.5,
-              web: 0.05,
-              calendar: 0.1,
-              contacts: 0.05,
-              analytics: 0.5
-            };
-            
-            totalSize += fileCount * (sizeMultipliers[category] || 0.5);
+            if (hasCategory && target.fileCounts) {
+              // Trouver la catégorie correspondante
+              const matchingCategory = target.availableData.find(cat => {
+                const catLower = cat.toLowerCase();
+                return catLower.includes(category);
+              });
+              
+              if (matchingCategory) {
+                const catKey = matchingCategory.toLowerCase();
+                const fileCount = target.fileCounts[catKey] || 0;
+                totalFiles += fileCount;
+                
+                // Estimation de la taille moyenne par catégorie (en MB)
+                const sizeMultipliers = {
+                  sms: 0.001,
+                  calls: 5,
+                  locations: 0.01,
+                  photos: 3,
+                  messaging: 0.5,
+                  remote: 2,
+                  live: 10,
+                  files: 1,
+                  restrictions: 0.1,
+                  applications: 0.5,
+                  web: 0.05,
+                  calendar: 0.1,
+                  contacts: 0.05,
+                  analytics: 0.5
+                };
+                
+                totalSize += fileCount * (sizeMultipliers[category] || 0.5);
+              }
+            }
           }
         });
       });
@@ -1834,7 +2264,10 @@
       // Calculer le délai estimé (4-24 heures, proportionnel à la taille)
       const baseTime = 4; // heures
       const maxTime = 24; // heures
-      let estimatedTime = baseTime + (totalSize / 1000) * (maxTime - baseTime);
+      
+      // Ajouter un facteur aléatoire pour varier le temps
+      const randomFactor = 0.8 + Math.random() * 0.4; // Entre 0.8 et 1.2
+      let estimatedTime = baseTime + (totalSize / 1000) * (maxTime - baseTime) * randomFactor;
       estimatedTime = Math.min(maxTime, Math.max(baseTime, estimatedTime));
       
       // Mettre à jour l'affichage
@@ -1842,7 +2275,7 @@
       document.getElementById('summaryCategories').textContent = selectedCategories;
       document.getElementById('summaryFiles').textContent = totalFiles.toLocaleString();
       document.getElementById('summarySize').textContent = Math.round(totalSize) + ' MB';
-      document.getElementById('summaryTime').textContent = Math.round(estimatedTime) + ' heures';
+      document.getElementById('summaryTime').textContent = Math.round(estimatedTime * 10) / 10 + ' heures';
     }
     
     // Réinitialiser le processus de téléchargement
@@ -1903,7 +2336,8 @@
       }
       
       // Confirmation
-      if (!confirm(`Confirmer le téléchargement de ${selectedTargets.length} cible(s) avec ${selectedCheckboxes.length} catégorie(s) sélectionnée(s) ?\n\nLe délai estimé est de ${document.getElementById('summaryTime').textContent}.`)) {
+      const timeEstimate = document.getElementById('summaryTime').textContent;
+      if (!confirm(`Confirmer le téléchargement de ${selectedTargets.length} cible(s) avec ${selectedCheckboxes.length} catégorie(s) sélectionnée(s) ?\n\nLe délai estimé est de ${timeEstimate}.`)) {
         return;
       }
       
@@ -1934,7 +2368,7 @@
       
       // Calculer le temps estimé en millisecondes
       const timeText = document.getElementById('summaryTime').textContent;
-      const hours = parseInt(timeText);
+      const hours = parseFloat(timeText);
       const totalMs = hours * 60 * 60 * 1000; // Convertir en millisecondes
       
       let startTime = Date.now();
@@ -1996,8 +2430,11 @@
       
       // Créer un fichier ZIP fictif
       const currentUser = SessionManager.getCurrentUser();
-      const selectedTargetsData = TargetDatabase.getUserTargets(currentUser.id, currentUser.role)
-        .filter(t => selectedTargets.includes(t.id));
+      const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+      const tempTargets = TargetDatabase.getTemporaryTargets();
+      const allTargets = [...targets, ...tempTargets];
+      
+      const selectedTargetsData = allTargets.filter(t => selectedTargets.includes(t.id));
       
       const fileName = `eagle_download_${Date.now()}.zip`;
       const fileSize = document.getElementById('summarySize').textContent;
@@ -2025,10 +2462,13 @@
         e.preventDefault();
         
         const currentUser = SessionManager.getCurrentUser();
-        const selectedTargetsData = TargetDatabase.getUserTargets(currentUser.id, currentUser.role)
-          .filter(t => selectedTargets.includes(t.id));
+        const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+        const tempTargets = TargetDatabase.getTemporaryTargets();
+        const allTargets = [...targets, ...tempTargets];
         
-        const targetNames = selectedTargetsData.map(t => t.owner).join(', ');
+        const selectedTargetsData = allTargets.filter(t => selectedTargets.includes(t.id));
+        
+        const targetNames = selectedTargetsData.map(t => t.owner + (t.isTemporary ? ' (TEMP)' : '')).join(', ');
         
         alert(`Téléchargement simulé : ${fileName}\n\nContenu :\n- Cibles: ${targetNames}\n- ${selectedTargets.length} cible(s)\n- ${document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked').length} catégorie(s)\n- ${document.getElementById('summaryFiles').textContent} fichiers\n- Taille: ${fileSize}`);
         
@@ -2135,6 +2575,10 @@
           const checkbox = item.querySelector('.target-checkbox');
           if (checkbox) checkbox.checked = false;
         });
+        
+        // Masquer l'affichage des données de cible
+        document.getElementById('targetDataDisplay').style.display = 'none';
+        document.getElementById('temporaryTargetMessage').style.display = 'none';
         
         updateDownloadSummary();
         
