@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Eagle Intercept0r - Téléchargement des Fichiers</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#1e90ff; --muted:#94a3b8; --glass: rgba(255,255,255,0.03);
+      --success:#10b981; --warning:#f59e0b; --danger:#ef4444; --sidebar-width: 280px;
+    }
+    html,body{
+      height:100%; margin:0; 
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; 
+      background:linear-gradient(180deg,#071029 0%, #0f1724 60%); 
+      color:#e6eef8;
+      overflow-x: hidden;
+    }
+    
+    /* Layout */
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: rgba(11, 18, 32, 0.95);
+      backdrop-filter: blur(10px);
+      height: 100vh;
+      position: fixed;
+      overflow-y: auto;
+      z-index: 1000;
+      border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .logo-container {
+      padding: 24px 20px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+      color: white;
+      box-shadow: 0 8px 30px rgba(30,144,255,0.12);
+      margin: 0 auto 12px;
+    }
+    
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .logo-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    
+    .nav-links {
+      padding: 20px 0;
+    }
+    
+    .nav-links li {
+      list-style: none;
+    }
+    
+    .nav-links a {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      color: #cbd5e0;
+      text-decoration: none;
+      transition: all 0.3s;
+      border-left: 4px solid transparent;
+    }
+    
+    .nav-links a:hover, .nav-links a.active {
+      background: rgba(255,255,255,0.03);
+      color: white;
+      border-left-color: var(--accent);
+    }
+    
+    .nav-links i {
+      margin-right: 10px;
+      width: 20px;
+      text-align: center;
+    }
+    
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: var(--sidebar-width);
+      padding: 24px;
+      transition: all 0.3s;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    
+    /* Cards and Containers */
+    .container{max-width:1100px; margin:0 auto;}
+    
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); 
+      padding:20px; 
+      border-radius:12px; 
+      box-shadow:0 6px 20px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.03);
+      margin-bottom: 20px;
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .card-title {
+      font-size: 1.2em;
+      font-weight: 600;
+    }
+    
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.2em;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+    }
+    
+    /* Download-specific styles */
+    .download-section {
+      margin-top: 25px;
+    }
+    
+    .section-title {
+      font-size: 1.1em;
+      margin-bottom: 15px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .checkbox-item:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.1);
+    }
+    
+    .checkbox-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .checkbox-label {
+      flex: 1;
+      cursor: pointer;
+    }
+    
+    .checkbox-description {
+      font-size: 0.85em;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    
+    .target-selection {
+      margin-bottom: 25px;
+    }
+    
+    .selection-options {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .selection-option {
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.3s;
+    }
+    
+    .selection-option.active {
+      background: rgba(30,144,255,0.1);
+      border-color: var(--accent);
+      color: white;
+    }
+    
+    .targets-container {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 15px;
+      padding: 10px;
+      background: rgba(255,255,255,0.01);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .target-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .target-item:last-child {
+      border-bottom: none;
+    }
+    
+    .target-item:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    
+    .target-item.selected {
+      background: rgba(30,144,255,0.1);
+      border-left: 3px solid var(--accent);
+    }
+    
+    .target-info {
+      flex: 1;
+    }
+    
+    .target-name {
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+    
+    .target-details {
+      font-size: 0.85em;
+      color: var(--muted);
+    }
+    
+    .file-count {
+      background: rgba(255,255,255,0.05);
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.8em;
+    }
+    
+    /* Summary section */
+    .summary-section {
+      margin-top: 25px;
+      padding: 20px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .summary-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .summary-item {
+      background: rgba(255,255,255,0.01);
+      padding: 12px;
+      border-radius: 8px;
+    }
+    
+    .summary-label {
+      font-size: 0.9em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    
+    .summary-value {
+      font-weight: 600;
+    }
+    
+    .estimated-time {
+      color: var(--warning);
+      font-weight: bold;
+    }
+    
+    /* Progress section */
+    .progress-section {
+      margin-top: 25px;
+    }
+    
+    .progress-wrap{
+      margin-top:12px; 
+      background:rgba(255,255,255,0.03); 
+      border-radius:8px; 
+      padding:12px;
+    }
+    
+    .progress{
+      height:12px; 
+      background:rgba(0,0,0,0.3); 
+      border-radius:8px; 
+      overflow:hidden;
+    }
+    
+    .progress > i{
+      display:block; 
+      height:100%; 
+      width:0%; 
+      background:linear-gradient(90deg,var(--accent),#7c3aed);
+      transition: width 0.3s;
+    }
+    
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 0.9em;
+    }
+    
+    .countdown{
+      font-weight:700; 
+      margin-left:8px;
+      color: var(--accent);
+    }
+    
+    .btn-download {
+      background: linear-gradient(90deg, var(--success), #059669);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-download:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .btn-stop {
+      background: linear-gradient(90deg, var(--danger), #dc2626);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn-stop:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+    
+    /* Download success message */
+    .download-success {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: none;
+    }
+    
+    .download-success.show {
+      display: block;
+    }
+    
+    .download-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      margin-top: 10px;
+      text-decoration: none;
+      color: #10b981;
+      font-weight: 500;
+    }
+    
+    .download-link:hover {
+      background: rgba(255,255,255,0.08);
+    }
+    
+    /* Login Overlay */
+    #loginOverlay{
+      position:fixed; 
+      top:0; 
+      left:0; 
+      right:0; 
+      bottom:0;
+      background:rgba(0,0,0,0.92);
+      display:flex; 
+      align-items:center; 
+      justify-content:center;
+      z-index:9999;
+    }
+    
+    #loginBox{
+      background:var(--card);
+      padding:28px 22px; 
+      border-radius:12px;
+      box-shadow:0 8px 40px rgba(0,0,0,0.7);
+      width:340px; 
+      text-align:center;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    #loginBox .logo{
+      width:72px; 
+      height:72px; 
+      border-radius:12px; 
+      margin:0 auto 12px; 
+      font-size:22px;
+    }
+    
+    #loginBox h2{
+      margin:8px 0 12px; 
+      font-size:18px;
+    }
+    
+    #loginBox input[type="text"], #loginBox input[type="password"]{
+      width:100%; 
+      margin:8px 0; 
+      padding:10px; 
+      border-radius:8px; 
+      border:1px solid rgba(255,255,255,0.1); 
+      background:var(--glass); 
+      color:white;
+    }
+    
+    #loginBox button{
+      margin-top:12px; 
+      width:100%; 
+      padding:10px; 
+      border:none; 
+      border-radius:8px; 
+      background:linear-gradient(90deg,var(--accent),#7c3aed); 
+      color:white; 
+      font-weight:600; 
+      cursor:pointer;
+    }
+    
+    #loginError{
+      color:#f87171; 
+      font-size:13px; 
+      margin-top:10px; 
+      display:none;
+    }
+    
+    /* Responsive */
+    @media(max-width:1024px){
+      .checkbox-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      }
+      .summary-items {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media(max-width:768px){
+      .checkbox-grid {
+        grid-template-columns: 1fr;
+      }
+      .summary-items {
+        grid-template-columns: 1fr;
+      }
+      .selection-options {
+        flex-direction: column;
+      }
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 70px;
+        overflow: visible;
+      }
+      .sidebar .logo-text, .sidebar .logo-subtitle, .nav-links span {
+        display: none;
+      }
+      .main-content {
+        margin-left: 70px;
+      }
+      .menu-toggle {
+        display: block;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" aria-hidden="false">
+    <div id="loginBox" role="dialog" aria-labelledby="loginTitle">
+      <div class="logo">E@</div>
+      <h2 id="loginTitle">Connexion Eagle Intercept0r</h2>
+      <input type="text" id="loginUser" placeholder="Email ou nom d'utilisateur">
+      <input type="password" id="loginPass" placeholder="Mot de passe">
+      <button id="loginBtn" type="button">Se connecter</button>
+      <div id="loginError">Identifiants incorrects</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" style="display:none">
+    <div class="app-container">
+      <!-- Sidebar Navigation -->
+      <div class="sidebar" id="sidebar">
+        <div class="logo-container">
+          <div class="logo">E@</div>
+          <div class="logo-text">Eagle Intercept0r</div>
+          <div class="logo-subtitle">Knox Cloud Integration</div>
+        </div>
+        <ul class="nav-links">
+          <li><a href="#" data-tab="dashboard"><i class="fas fa-tachometer-alt"></i> <span>Tableau de Bord</span></a></li>
+          <li><a href="#" data-tab="search"><i class="fas fa-search"></i> <span>Recherche Cible</span></a></li>
+          <li><a href="#" data-tab="downloads" class="active"><i class="fas fa-download"></i> <span>Téléchargements</span></a></li>
+          <li><a href="#" data-tab="acquisition"><i class="fas fa-database"></i> <span>Acquisition</span></a></li>
+          <li><a href="#" data-tab="eaglereader"><i class="fas fa-book-reader"></i> <span>EagleReader</span></a></li>
+          <li><a href="#" data-tab="mlocator"><i class="fas fa-map-marked-alt"></i> <span>MLocator</span></a></li>
+          <li><a href="#" data-tab="reports"><i class="fas fa-chart-bar"></i> <span>Rapports</span></a></li>
+          <li><a href="#" data-tab="security"><i class="fas fa-shield-alt"></i> <span>Sécurité</span></a></li>
+          <li id="adminSection" style="display:none"><a href="#" data-tab="users"><i class="fas fa-users-cog"></i> <span>Gestion Utilisateurs</span></a></li>
+          <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span>Déconnexion</span></a></li>
+        </ul>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+          <button class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h2 id="pageTitle">Téléchargement des Fichiers</h2>
+          <div class="user-info">
+            <div class="avatar" id="userAvatar">AD</div>
+            <div>
+              <div id="userDisplayName">Admin User</div>
+              <div style="font-size: 0.8em; color: var(--muted);" id="userRole">Administrateur</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="container">
+          <!-- Downloads Tab -->
+          <div class="tab-content active" id="downloads">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Téléchargement des Fichiers</div>
+                <div class="card-icon">
+                  <i class="fas fa-download"></i>
+                </div>
+              </div>
+              
+              <!-- Sélection des cibles -->
+              <div class="target-selection">
+                <h3>Sélection des Cibles</h3>
+                <p class="meta">Sélectionnez une ou plusieurs cibles pour télécharger leurs fichiers</p>
+                
+                <div class="selection-options">
+                  <div class="selection-option active" id="selectSingle">Sélection unique</div>
+                  <div class="selection-option" id="selectMultiple">Sélection multiple</div>
+                  <div class="selection-option" id="selectAll">Toutes les cibles</div>
+                </div>
+                
+                <div class="search-row">
+                  <select id="searchIdentifierType">
+                    <option value="phone">Numéro mobile/fixe</option>
+                    <option value="imei">IMEI</option>
+                    <option value="sn">Numéro de série (SN)</option>
+                    <option value="mac">Adresse MAC</option>
+                  </select>
+                  <input id="searchIdentifier" placeholder="Entrez l'identifiant de la cible..." />
+                  <button id="searchTargetBtn"><i class="fas fa-search"></i> Rechercher</button>
+                </div>
+                
+                <div class="targets-container" id="targetsList">
+                  <!-- Les cibles seront chargées ici dynamiquement -->
+                </div>
+              </div>
+              
+              <!-- Sélection des catégories de fichiers -->
+              <div class="download-section">
+                <h3>Catégories de Fichiers à Télécharger</h3>
+                <p class="meta">Sélectionnez les types de fichiers à inclure dans le téléchargement</p>
+                
+                <div class="action-buttons" style="margin-bottom: 15px;">
+                  <button id="selectAllCategories"><i class="fas fa-check-square"></i> Tout sélectionner</button>
+                  <button id="deselectAllCategories"><i class="fas fa-square"></i> Tout désélectionner</button>
+                  <button id="selectCommonCategories"><i class="fas fa-star"></i> Sélection standard</button>
+                </div>
+                
+                <!-- Catégorie 1: SMS / MMS -->
+                <div class="section-title">
+                  <i class="fas fa-sms"></i>
+                  <span>SMS / MMS</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat1_1" data-category="sms" data-subcategory="suivi">
+                    <div class="checkbox-label">
+                      <div>Suivi des SMS et MMS</div>
+                      <div class="checkbox-description">Historique complet des messages texte et multimédias</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat1_2" data-category="sms" data-subcategory="alertes">
+                    <div class="checkbox-label">
+                      <div>Alertes SMS</div>
+                      <div class="checkbox-description">Notifications et alertes par SMS</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat1_3" data-category="sms" data-subcategory="imessage">
+                    <div class="checkbox-label">
+                      <div>iMessage — Texte</div>
+                      <div class="checkbox-description">Messages texte via iMessage</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégorie 2: Appels -->
+                <div class="section-title">
+                  <i class="fas fa-phone"></i>
+                  <span>Appels</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat2_1" data-category="calls" data-subcategory="journaux">
+                    <div class="checkbox-label">
+                      <div>Journaux d'appels</div>
+                      <div class="checkbox-description">Historique des appels entrants, sortants et manqués</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat2_2" data-category="calls" data-subcategory="enregistrements">
+                    <div class="checkbox-label">
+                      <div>Enregistrements audio</div>
+                      <div class="checkbox-description">Enregistrements des conversations téléphoniques</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat2_3" data-category="calls" data-subcategory="blocage">
+                    <div class="checkbox-label">
+                      <div>Blocage des appels</div>
+                      <div class="checkbox-description">Liste des appels bloqués</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat2_4" data-category="calls" data-subcategory="facetime">
+                    <div class="checkbox-label">
+                      <div>FaceTime audio / vidéo</div>
+                      <div class="checkbox-description">Historique des appels FaceTime</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégorie 3: Localisations -->
+                <div class="section-title">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>Localisations</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat3_1" data-category="locations" data-subcategory="historique">
+                    <div class="checkbox-label">
+                      <div>Historique des positions GPS</div>
+                      <div class="checkbox-description">Traces GPS complètes avec horodatage</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat3_2" data-category="locations" data-subcategory="temps-reel">
+                    <div class="checkbox-label">
+                      <div>Suivi de la position en temps réel</div>
+                      <div class="checkbox-description">Données de localisation actuelles</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégorie 4: Photos -->
+                <div class="section-title">
+                  <i class="fas fa-camera"></i>
+                  <span>Photos</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat4_1" data-category="photos" data-subcategory="images">
+                    <div class="checkbox-label">
+                      <div>Visualisation et téléchargement des images</div>
+                      <div class="checkbox-description">Toutes les photos stockées sur l'appareil</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégorie 5: Messageries instantanées (première partie) -->
+                <div class="section-title">
+                  <i class="fas fa-comment-dots"></i>
+                  <span>Messageries instantanées</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_1" data-category="messaging" data-subcategory="whatsapp">
+                    <div class="checkbox-label">
+                      <div>WhatsApp</div>
+                      <div class="checkbox-description">Messages, médias et appels WhatsApp</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_2" data-category="messaging" data-subcategory="facebook">
+                    <div class="checkbox-label">
+                      <div>Facebook Messenger</div>
+                      <div class="checkbox-description">Conversations Messenger complètes</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_3" data-category="messaging" data-subcategory="skype">
+                    <div class="checkbox-label">
+                      <div>Skype</div>
+                      <div class="checkbox-description">Messages et appels Skype</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_4" data-category="messaging" data-subcategory="hangouts">
+                    <div class="checkbox-label">
+                      <div>Hangouts</div>
+                      <div class="checkbox-description">Historique Google Hangouts</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_5" data-category="messaging" data-subcategory="line">
+                    <div class="checkbox-label">
+                      <div>LINE</div>
+                      <div class="checkbox-description">Messages et appels LINE</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_6" data-category="messaging" data-subcategory="kik">
+                    <div class="checkbox-label">
+                      <div>Kik</div>
+                      <div class="checkbox-description">Conversations Kik</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_7" data-category="messaging" data-subcategory="viber">
+                    <div class="checkbox-label">
+                      <div>Viber</div>
+                      <div class="checkbox-description">Messages et appels Viber</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_8" data-category="messaging" data-subcategory="gmail">
+                    <div class="checkbox-label">
+                      <div>Gmail</div>
+                      <div class="checkbox-description">Emails et pièces jointes Gmail</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_9" data-category="messaging" data-subcategory="tango">
+                    <div class="checkbox-label">
+                      <div>Tango</div>
+                      <div class="checkbox-description">Messages Tango</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_10" data-category="messaging" data-subcategory="snapchat">
+                    <div class="checkbox-label">
+                      <div>Snapchat</div>
+                      <div class="checkbox-description">Snaps et conversations Snapchat</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat5_11" data-category="messaging" data-subcategory="telegram">
+                    <div class="checkbox-label">
+                      <div>Telegram</div>
+                      <div class="checkbox-description">Messages et médias Telegram</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégorie 6: Contrôle & Outils distants -->
+                <div class="section-title">
+                  <i class="fas fa-tools"></i>
+                  <span>Contrôle & Outils distants</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat6_1" data-category="remote" data-subcategory="enregistrements-audio">
+                    <div class="checkbox-label">
+                      <div>Enregistrements audio</div>
+                      <div class="checkbox-description">Enregistrements microphone à distance</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat6_2" data-category="remote" data-subcategory="capture-photo">
+                    <div class="checkbox-label">
+                      <div>Capture photo</div>
+                      <div class="checkbox-description">Photos prises à distance</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat6_3" data-category="remote" data-subcategory="commandes-sms">
+                    <div class="checkbox-label">
+                      <div>Commandes SMS</div>
+                      <div class="checkbox-description">Historique des commandes par SMS</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat6_4" data-category="remote" data-subcategory="autres-outils">
+                    <div class="checkbox-label">
+                      <div>Autres outils associés</div>
+                      <div class="checkbox-description">Fonctionnalités de contrôle supplémentaires</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégorie 7: Visualisation en direct -->
+                <div class="section-title">
+                  <i class="fas fa-eye"></i>
+                  <span>Visualisation en direct</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat7_1" data-category="live" data-subcategory="flux-audio">
+                    <div class="checkbox-label">
+                      <div>Flux audio</div>
+                      <div class="checkbox-description">Enregistrements audio en temps réel</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat7_2" data-category="live" data-subcategory="flux-video">
+                    <div class="checkbox-label">
+                      <div>Flux vidéo</div>
+                      <div class="checkbox-description">Streaming vidéo en direct</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat7_3" data-category="live" data-subcategory="capture-ecran">
+                    <div class="checkbox-label">
+                      <div>Capture écran en direct</div>
+                      <div class="checkbox-description">Captures d'écran à distance</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégorie 8: Gestion des fichiers -->
+                <div class="section-title">
+                  <i class="fas fa-folder-open"></i>
+                  <span>Gestion des fichiers</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat8_1" data-category="files" data-subcategory="explorateur">
+                    <div class="checkbox-label">
+                      <div>Explorateur de fichiers</div>
+                      <div class="checkbox-description">Structure complète des fichiers</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat8_2" data-category="files" data-subcategory="imessage-audio">
+                    <div class="checkbox-label">
+                      <div>iMessage — Audio</div>
+                      <div class="checkbox-description">Messages audio iMessage</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat8_3" data-category="files" data-subcategory="imessage-video">
+                    <div class="checkbox-label">
+                      <div>iMessage — Vidéo</div>
+                      <div class="checkbox-description">Messages vidéo iMessage</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Catégories 9-14 (résumées pour gagner de l'espace) -->
+                <div class="section-title">
+                  <i class="fas fa-cogs"></i>
+                  <span>Autres catégories</span>
+                </div>
+                <div class="checkbox-grid">
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat9_1" data-category="restrictions" data-subcategory="plages">
+                    <div class="checkbox-label">
+                      <div>Restrictions d'usage — Plages horaires</div>
+                      <div class="checkbox-description">Configurations des plages d'utilisation</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat10_1" data-category="applications" data-subcategory="liste">
+                    <div class="checkbox-label">
+                      <div>Applications — Liste installées</div>
+                      <div class="checkbox-description">Inventaire des applications installées</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat11_1" data-category="web" data-subcategory="historique">
+                    <div class="checkbox-label">
+                      <div>Sites Web — Historique de navigation</div>
+                      <div class="checkbox-description">Historique complet du navigateur</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat12_1" data-category="calendar" data-subcategory="evenements">
+                    <div class="checkbox-label">
+                      <div>Calendrier — Événements synchronisés</div>
+                      <div class="checkbox-description">Événements du calendrier</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat13_1" data-category="contacts" data-subcategory="liste">
+                    <div class="checkbox-label">
+                      <div>Contacts — Liste des contacts</div>
+                      <div class="checkbox-description">Carnet d'adresses complet</div>
+                    </div>
+                  </div>
+                  <div class="checkbox-item">
+                    <input type="checkbox" id="cat14_1" data-category="analytics" data-subcategory="statistiques">
+                    <div class="checkbox-label">
+                      <div>Outils d'analyse — Statistiques</div>
+                      <div class="checkbox-description">Données statistiques agrégées</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Récapitulatif -->
+              <div class="summary-section">
+                <div class="summary-header">
+                  <h3>Récapitulatif du Téléchargement</h3>
+                  <button id="updateSummary"><i class="fas fa-sync-alt"></i> Actualiser</button>
+                </div>
+                
+                <div class="summary-items" id="downloadSummary">
+                  <div class="summary-item">
+                    <div class="summary-label">Cibles sélectionnées</div>
+                    <div class="summary-value" id="summaryTargets">0</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Catégories sélectionnées</div>
+                    <div class="summary-value" id="summaryCategories">0</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Fichiers estimés</div>
+                    <div class="summary-value" id="summaryFiles">0</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Taille estimée</div>
+                    <div class="summary-value" id="summarySize">0 MB</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Délai de préparation</div>
+                    <div class="summary-value estimated-time" id="summaryTime">4h - 24h</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Format d'export</div>
+                    <div class="summary-value" id="summaryFormat">ZIP</div>
+                  </div>
+                </div>
+                
+                <div class="progress-section" id="progressSection" style="display:none">
+                  <h4>Préparation du téléchargement en cours...</h4>
+                  <div class="progress-wrap">
+                    <div class="progress"><i id="downloadProgressBar"></i></div>
+                    <div class="progress-info">
+                      <div id="progressStatus">Initialisation...</div>
+                      <div class="countdown" id="downloadCountdown">--:--:--</div>
+                    </div>
+                  </div>
+                  
+                  <div id="downloadSuccess" class="download-success">
+                    <h5 style="color:#10b981; margin-bottom:10px"><i class="fas fa-check-circle"></i> Téléchargement prêt !</h5>
+                    <div id="downloadLinkContainer">
+                      <!-- Le lien de téléchargement sera ajouté ici -->
+                    </div>
+                    <div class="meta" style="margin-top:10px">
+                      <i class="fas fa-info-circle"></i> Vous pouvez maintenant télécharger le fichier ou commencer un nouveau téléchargement.
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Boutons d'action -->
+              <div class="action-buttons">
+                <button class="btn-download" id="startDownloadBtn">
+                  <i class="fas fa-download"></i> Lancer le téléchargement
+                </button>
+                <button class="btn-stop" id="stopDownloadBtn" style="display:none">
+                  <i class="fas fa-stop-circle"></i> Arrêter le téléchargement
+                </button>
+                <button id="newDownloadBtn" style="display:none">
+                  <i class="fas fa-redo"></i> Nouveau téléchargement
+                </button>
+                <button id="saveConfigBtn">
+                  <i class="fas fa-save"></i> Sauvegarder la configuration
+                </button>
+                <button id="resetSelectionBtn" class="btn-danger">
+                  <i class="fas fa-undo"></i> Tout réinitialiser
+                </button>
+              </div>
+              
+              <div class="meta" style="margin-top: 15px;">
+                <i class="fas fa-info-circle"></i> Le délai de préparation varie entre 4 et 24 heures selon le volume de données sélectionné.
+              </div>
+            </div>
+          </div>
+          
+          <footer>
+            <div>© Eagle Intercept0r — Usage légal uniquement. Respectez la vie privée et la loi.</div>
+            <div class="meta" style="margin-top: 8px;">Système certifié Samsung Knox Cloud</div>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== GESTION DE SESSION PERSISTANTE =====
+    
+    const UserManager = {
+      getUsers: function() {
+        const users = localStorage.getItem('eagle_users');
+        return users ? JSON.parse(users) : [];
+      },
+      
+      saveUsers: function(users) {
+        localStorage.setItem('eagle_users', JSON.stringify(users));
+      },
+      
+      initDefaultUsers: function() {
+        const defaultUsers = [
+          {
+            id: 1,
+            name: "Administrateur Système",
+            email: "admin@eagle-interceptor.io",
+            username: "EIleonkonan",
+            password: "TCk8cQn4",
+            role: "admin",
+            avatar: "AD",
+            permissions: ["search", "acquisition", "eaglereader", "mlocator", "reports", "users", "security", "downloads"],
+            createdAt: new Date().toISOString(),
+            active: true
+          },
+          {
+            id: 2,
+            name: "Pierre Technicien",
+            email: "tech@eagle-interceptor.io",
+            username: "pierre.tech",
+            password: "Tech123!",
+            role: "technician",
+            avatar: "PT",
+            permissions: ["search", "acquisition", "eaglereader", "mlocator", "reports", "downloads"],
+            createdAt: new Date().toISOString(),
+            active: true
+          },
+          {
+            id: 3,
+            name: "Client Entreprise",
+            email: "client@entreprise.com",
+            username: "entreprise.client",
+            password: "Client123!",
+            role: "client",
+            avatar: "CE",
+            permissions: ["search", "acquisition", "downloads"],
+            createdAt: new Date().toISOString(),
+            active: true
+          },
+          {
+            id: 4,
+            name: "Bernard DERRIEN",
+            email: "bernardderrienlbv@gmail.com",
+            username: "bernardderrienlbv",
+            password: "Ben29odet95?",
+            role: "admin",
+            avatar: "BD",
+            permissions: ["search", "acquisition", "eaglereader", "mlocator", "reports", "security", "downloads"],
+            createdAt: new Date().toISOString(),
+            active: true
+          }
+        ];
+        
+        if (this.getUsers().length === 0) {
+          this.saveUsers(defaultUsers);
+        }
+      },
+      
+      addUser: function(userData) {
+        const users = this.getUsers();
+        const newUser = {
+          id: Date.now(),
+          name: userData.name,
+          email: userData.email,
+          username: userData.username,
+          password: userData.password,
+          role: userData.role,
+          avatar: userData.name.split(' ').map(n => n[0]).join('').toUpperCase(),
+          permissions: userData.permissions || [],
+          createdAt: new Date().toISOString(),
+          active: true
+        };
+        
+        users.push(newUser);
+        this.saveUsers(users);
+        return newUser;
+      },
+      
+      getUserByIdentifier: function(identifier) {
+        const users = this.getUsers();
+        return users.find(u => u.username === identifier || u.email === identifier);
+      }
+    };
+
+    const SessionManager = {
+      getCurrentUser: function() {
+        const userData = localStorage.getItem('eagle_current_user');
+        return userData ? JSON.parse(userData) : null;
+      },
+      
+      setCurrentUser: function(user) {
+        localStorage.setItem('eagle_current_user', JSON.stringify(user));
+      },
+      
+      clearCurrentUser: function() {
+        localStorage.removeItem('eagle_current_user');
+      },
+      
+      checkExistingSession: function() {
+        const currentUser = this.getCurrentUser();
+        if (currentUser) {
+          return currentUser;
+        }
+        return null;
+      }
+    };
+
+    // ===== BASE DE DONNÉES DE CIBLES =====
+    
+    const TargetDatabase = {
+      getTargets: function() {
+        const targets = localStorage.getItem('eagle_targets');
+        if (targets) return JSON.parse(targets);
+        
+        const defaultTargets = [
+          {
+            id: "KF001",
+            userId: 1,
+            imei: "356789012345678",
+            sn: "SN-A1B2C3",
+            phone: "+2250707692252",
+            mac: "00:1B:44:11:3A:B7",
+            model: "iPhone",
+            owner: "KF",
+            status: "active",
+            lastActivity: new Date(Date.now() - 15 * 60000).toISOString(),
+            availableData: ["SMS", "Appels", "Photos", "Localisations", "Logs", "WhatsApp", "Facebook", "Contacts"],
+            fileCounts: {
+              sms: 245,
+              calls: 128,
+              locations: 89,
+              photos: 156,
+              messaging: 342,
+              remote: 45,
+              live: 12,
+              files: 67,
+              restrictions: 3,
+              applications: 24,
+              web: 187,
+              calendar: 45,
+              contacts: 89,
+              analytics: 15
+            }
+          },
+          {
+            id: "BL002",
+            userId: 1,
+            imei: "490154203237518",
+            sn: "SN-Z9Y8X7",
+            phone: "+2250777520986",
+            mac: "00:1B:44:11:3B:C8",
+            model: "iPhone 13",
+            owner: "BELLO",
+            status: "active",
+            lastActivity: new Date(Date.now() - 45 * 60000).toISOString(),
+            availableData: ["Photos", "Contacts", "Logs", "Localisations", "iMessage", "Safari"],
+            fileCounts: {
+              sms: 187,
+              calls: 94,
+              locations: 67,
+              photos: 203,
+              messaging: 278,
+              remote: 32,
+              live: 8,
+              files: 45,
+              restrictions: 2,
+              applications: 31,
+              web: 156,
+              calendar: 38,
+              contacts: 102,
+              analytics: 12
+            }
+          },
+          {
+            id: "SL003",
+            userId: 1,
+            imei: "861234056789012",
+            sn: "SN-M4N5O6",
+            phone: "+2250505992287",
+            mac: "00:1B:44:11:3C:D9",
+            model: "REDMI NOTE 12 PRO",
+            owner: "SOULAN",
+            status: "inactive",
+            lastActivity: new Date(Date.now() - 120 * 60000).toISOString(),
+            availableData: ["SMS", "Appels", "Localisations", "Gmail", "Chrome"],
+            fileCounts: {
+              sms: 312,
+              calls: 156,
+              locations: 102,
+              photos: 89,
+              messaging: 423,
+              remote: 28,
+              live: 5,
+              files: 38,
+              restrictions: 4,
+              applications: 42,
+              web: 234,
+              calendar: 28,
+              contacts: 76,
+              analytics: 18
+            }
+          },
+          {
+            id: "FK004",
+            userId: 1,
+            imei: "357987065432109",
+            sn: "SN-P7Q8R9",
+            phone: "+2250708278708",
+            mac: "00:1B:44:11:3D:E0",
+            model: "SAMSUNG S24 ULTRA",
+            owner: "Frank KOSSONOU",
+            status: "active",
+            lastActivity: new Date(Date.now() - 10 * 60000).toISOString(),
+            availableData: ["SMS", "Appels", "Localisations", "WeChat", "Photos"],
+            fileCounts: {
+              sms: 178,
+              calls: 112,
+              locations: 78,
+              photos: 267,
+              messaging: 389,
+              remote: 51,
+              live: 15,
+              files: 89,
+              restrictions: 3,
+              applications: 56,
+              web: 198,
+              calendar: 51,
+              contacts: 134,
+              analytics: 21
+            }
+          },
+          {
+            id: "FK005",
+            userId: 1,
+            imei: "357987065432110",
+            sn: "SN-P7Q8R0",
+            phone: "+2250505008080",
+            mac: "00:1B:44:11:3D:E1",
+            model: "iPhone 16",
+            owner: "Frank KOSSONOU",
+            status: "active",
+            lastActivity: new Date(Date.now() - 5 * 60000).toISOString(),
+            availableData: ["SMS", "Appels", "Localisations", "iMessage", "Photos"],
+            fileCounts: {
+              sms: 156,
+              calls: 87,
+              locations: 65,
+              photos: 189,
+              messaging: 267,
+              remote: 36,
+              live: 9,
+              files: 72,
+              restrictions: 2,
+              applications: 38,
+              web: 167,
+              calendar: 42,
+              contacts: 98,
+              analytics: 14
+            }
+          }
+        ];
+        
+        this.saveTargets(defaultTargets);
+        return defaultTargets;
+      },
+      
+      saveTargets: function(targets) {
+        localStorage.setItem('eagle_targets', JSON.stringify(targets));
+      },
+      
+      getUserTargets: function(userId, userRole) {
+        const targets = this.getTargets();
+        if (userRole === 'admin') {
+          return targets;
+        } else {
+          return targets.filter(target => target.userId === userId);
+        }
+      },
+      
+      findTarget: function(type, value) {
+        const targets = this.getTargets();
+        return targets.find(target => {
+          if (type === 'imei') return target.imei === value;
+          if (type === 'sn') return target.sn === value;
+          if (type === 'phone') return target.phone === value;
+          if (type === 'mac') return target.mac === value;
+          return false;
+        });
+      }
+    };
+
+    // ===== AUTHENTIFICATION =====
+    
+    (function(){
+      UserManager.initDefaultUsers();
+      TargetDatabase.getTargets();
+      
+      const loginOverlay = document.getElementById('loginOverlay');
+      const mainContent = document.getElementById('mainContent');
+      const loginBtn = document.getElementById('loginBtn');
+      const loginError = document.getElementById('loginError');
+      const adminSection = document.getElementById('adminSection');
+      const logoutBtn = document.getElementById('logoutBtn');
+      
+      const existingUser = SessionManager.checkExistingSession();
+      if (existingUser) {
+        showMain(existingUser);
+      }
+      
+      function showMain(user){ 
+        SessionManager.setCurrentUser(user);
+        
+        loginOverlay.style.display='none'; 
+        mainContent.style.display='block'; 
+        loginError.style.display='none'; 
+        
+        document.getElementById('userDisplayName').textContent = user.name;
+        document.getElementById('userRole').textContent = 
+          user.role === 'admin' ? 'Administrateur' : 
+          user.role === 'technician' ? 'Technicien' : 'Client';
+        document.getElementById('userAvatar').textContent = user.avatar;
+        
+        if (user.role === 'admin') {
+          adminSection.style.display = 'block';
+        } else {
+          adminSection.style.display = 'none';
+        }
+        
+        loadTargetsList();
+      }
+      
+      function showError(){ 
+        loginError.style.display='block'; 
+      }
+      
+      function logout() {
+        SessionManager.clearCurrentUser();
+        loginOverlay.style.display = 'flex';
+        mainContent.style.display = 'none';
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+      }
+      
+      loginBtn.addEventListener('click', () => {
+        const identifier = (document.getElementById('loginUser').value || '').trim();
+        const password = (document.getElementById('loginPass').value || '').trim();
+        
+        const user = UserManager.getUserByIdentifier(identifier);
+        
+        if (user && user.password === password && user.active) {
+          showMain(user);
+        } else {
+          showError();
+        }
+      });
+      
+      logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        logout();
+      });
+      
+      document.getElementById('loginUser').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loginBtn.click(); });
+      document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loginBtn.click(); });
+      
+      if (!existingUser) {
+        document.getElementById('loginUser').focus();
+      }
+    })();
+
+    // ===== GESTION DE L'INTERFACE UTILISATEUR =====
+    
+    let selectedTargets = [];
+    let isMultiSelect = false;
+    let downloadInProgress = false;
+    let downloadTimer = null;
+    let downloadProgressInterval = null;
+    
+    // Navigation entre les onglets
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', function(e) {
+        if (this.id === 'logoutBtn') return;
+        
+        e.preventDefault();
+        
+        const tabId = this.getAttribute('data-tab');
+        const currentUser = SessionManager.getCurrentUser();
+        
+        if (tabId === 'users' && currentUser.role !== 'admin') {
+          alert('Accès refusé. Seuls les administrateurs peuvent accéder à cette section.');
+          return;
+        }
+        
+        document.querySelectorAll('.nav-links a').forEach(item => {
+          item.classList.remove('active');
+        });
+        this.classList.add('active');
+        
+        document.querySelectorAll('.tab-content').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        document.getElementById(tabId).classList.add('active');
+        
+        document.getElementById('pageTitle').textContent = this.querySelector('span').textContent;
+        
+        if (tabId === 'downloads') {
+          loadTargetsList();
+          updateDownloadSummary();
+        }
+      });
+    });
+
+    // Toggle sidebar on mobile
+    document.getElementById('menuToggle').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('active');
+    });
+
+    // ===== FONCTIONS DE GESTION DES TÉLÉCHARGEMENTS =====
+    
+    // Charger la liste des cibles
+    function loadTargetsList() {
+      const currentUser = SessionManager.getCurrentUser();
+      const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+      const targetsList = document.getElementById('targetsList');
+      
+      targetsList.innerHTML = '';
+      
+      if (targets.length === 0) {
+        targetsList.innerHTML = `
+          <div style="text-align:center; padding:40px 20px; color:var(--muted)">
+            <i class="fas fa-info-circle" style="font-size:2em; margin-bottom:10px"></i>
+            <p>Aucune cible disponible.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      targets.forEach(target => {
+        const totalFiles = Object.values(target.fileCounts || {}).reduce((sum, count) => sum + count, 0);
+        
+        const targetItem = document.createElement('div');
+        targetItem.className = 'target-item';
+        targetItem.dataset.targetId = target.id;
+        
+        targetItem.innerHTML = `
+          <input type="checkbox" class="target-checkbox" ${isMultiSelect ? '' : 'style="display:none"'}>
+          <div class="target-info">
+            <div class="target-name">${target.owner} (${target.model})</div>
+            <div class="target-details">${target.phone} • IMEI: ${target.imei}</div>
+            <div class="target-details">Statut: ${target.status === 'active' ? '<span style="color:#10b981">Actif</span>' : '<span style="color:#ef4444">Inactif</span>'}</div>
+          </div>
+          <div class="file-count">${totalFiles} fichiers</div>
+        `;
+        
+        targetItem.addEventListener('click', function(e) {
+          if (e.target.type === 'checkbox') return;
+          
+          const targetId = this.dataset.targetId;
+          
+          if (isMultiSelect) {
+            const checkbox = this.querySelector('.target-checkbox');
+            checkbox.checked = !checkbox.checked;
+            handleTargetSelection(targetId, checkbox.checked);
+          } else {
+            // Sélection unique
+            document.querySelectorAll('.target-item').forEach(item => {
+              item.classList.remove('selected');
+              if (item.querySelector('.target-checkbox')) {
+                item.querySelector('.target-checkbox').checked = false;
+              }
+            });
+            
+            this.classList.add('selected');
+            selectedTargets = [targetId];
+          }
+          
+          updateDownloadSummary();
+        });
+        
+        targetsList.appendChild(targetItem);
+      });
+      
+      // Initialiser la sélection
+      if (targets.length > 0 && !isMultiSelect) {
+        targetsList.firstChild.click();
+      }
+    }
+    
+    // Gérer la sélection des cibles
+    function handleTargetSelection(targetId, isSelected) {
+      if (isSelected) {
+        if (!selectedTargets.includes(targetId)) {
+          selectedTargets.push(targetId);
+        }
+      } else {
+        selectedTargets = selectedTargets.filter(id => id !== targetId);
+      }
+    }
+    
+    // Modes de sélection
+    document.getElementById('selectSingle').addEventListener('click', function() {
+      document.querySelectorAll('.selection-option').forEach(opt => opt.classList.remove('active'));
+      this.classList.add('active');
+      
+      isMultiSelect = false;
+      selectedTargets = [];
+      
+      document.querySelectorAll('.target-checkbox').forEach(cb => {
+        cb.style.display = 'none';
+        cb.checked = false;
+      });
+      
+      document.querySelectorAll('.target-item').forEach(item => {
+        item.classList.remove('selected');
+      });
+      
+      loadTargetsList();
+    });
+    
+    document.getElementById('selectMultiple').addEventListener('click', function() {
+      document.querySelectorAll('.selection-option').forEach(opt => opt.classList.remove('active'));
+      this.classList.add('active');
+      
+      isMultiSelect = true;
+      selectedTargets = [];
+      
+      document.querySelectorAll('.target-checkbox').forEach(cb => {
+        cb.style.display = 'block';
+        cb.checked = false;
+      });
+      
+      document.querySelectorAll('.target-item').forEach(item => {
+        item.classList.remove('selected');
+      });
+      
+      updateDownloadSummary();
+    });
+    
+    document.getElementById('selectAll').addEventListener('click', function() {
+      document.querySelectorAll('.selection-option').forEach(opt => opt.classList.remove('active'));
+      this.classList.add('active');
+      
+      isMultiSelect = true;
+      const currentUser = SessionManager.getCurrentUser();
+      const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+      
+      selectedTargets = targets.map(t => t.id);
+      
+      document.querySelectorAll('.target-checkbox').forEach(cb => {
+        cb.style.display = 'block';
+        cb.checked = true;
+      });
+      
+      updateDownloadSummary();
+    });
+    
+    // Recherche de cible par identifiant
+    document.getElementById('searchTargetBtn').addEventListener('click', function() {
+      const searchType = document.getElementById('searchIdentifierType').value;
+      const searchValue = document.getElementById('searchIdentifier').value.trim();
+      
+      if (!searchValue) {
+        alert('Veuillez saisir un identifiant à rechercher.');
+        return;
+      }
+      
+      const target = TargetDatabase.findTarget(searchType, searchValue);
+      
+      if (target) {
+        // Vérifier que l'utilisateur a accès à cette cible
+        const currentUser = SessionManager.getCurrentUser();
+        const userTargets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+        
+        if (!userTargets.some(t => t.id === target.id)) {
+          alert('Cible trouvée mais vous n\'avez pas accès à cette cible.');
+          return;
+        }
+        
+        // Sélectionner la cible trouvée
+        if (isMultiSelect) {
+          // Ajouter à la sélection multiple
+          if (!selectedTargets.includes(target.id)) {
+            selectedTargets.push(target.id);
+          }
+          
+          document.querySelectorAll('.target-item').forEach(item => {
+            if (item.dataset.targetId === target.id) {
+              item.querySelector('.target-checkbox').checked = true;
+            }
+          });
+        } else {
+          // Passer en mode sélection unique
+          document.getElementById('selectSingle').click();
+          
+          // Sélectionner la cible trouvée
+          document.querySelectorAll('.target-item').forEach(item => {
+            item.classList.remove('selected');
+            if (item.dataset.targetId === target.id) {
+              item.classList.add('selected');
+              selectedTargets = [target.id];
+            }
+          });
+        }
+        
+        updateDownloadSummary();
+        
+        // Faire défiler jusqu'à la cible
+        const targetElement = document.querySelector(`[data-target-id="${target.id}"]`);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+      } else {
+        alert('Aucune cible trouvée avec cet identifiant.');
+      }
+    });
+    
+    // Gestion des cases à cocher des catégories
+    document.getElementById('selectAllCategories').addEventListener('click', function() {
+      document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+        cb.checked = true;
+      });
+      updateDownloadSummary();
+    });
+    
+    document.getElementById('deselectAllCategories').addEventListener('click', function() {
+      document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+      });
+      updateDownloadSummary();
+    });
+    
+    document.getElementById('selectCommonCategories').addEventListener('click', function() {
+      // Désélectionner tout d'abord
+      document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+      });
+      
+      // Sélectionner les catégories courantes
+      const commonCategories = ['cat1_1', 'cat2_1', 'cat3_1', 'cat4_1', 'cat5_1', 'cat5_2', 'cat5_11', 'cat11_1', 'cat13_1'];
+      commonCategories.forEach(id => {
+        const cb = document.getElementById(id);
+        if (cb) cb.checked = true;
+      });
+      
+      updateDownloadSummary();
+    });
+    
+    // Mettre à jour le récapitulatif
+    function updateDownloadSummary() {
+      const currentUser = SessionManager.getCurrentUser();
+      const targets = TargetDatabase.getUserTargets(currentUser.id, currentUser.role);
+      const selectedTargetsData = targets.filter(t => selectedTargets.includes(t.id));
+      
+      // Compter les catégories sélectionnées
+      const selectedCheckboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked');
+      const selectedCategories = selectedCheckboxes.length;
+      
+      // Calculer les fichiers estimés et la taille
+      let totalFiles = 0;
+      let totalSize = 0; // en MB
+      
+      selectedTargetsData.forEach(target => {
+        selectedCheckboxes.forEach(cb => {
+          const category = cb.dataset.category;
+          const subcategory = cb.dataset.subcategory;
+          
+          if (target.fileCounts && target.fileCounts[category]) {
+            const fileCount = target.fileCounts[category];
+            totalFiles += fileCount;
+            
+            // Estimation de la taille moyenne par catégorie (en MB)
+            const sizeMultipliers = {
+              sms: 0.001,      // 1KB par SMS
+              calls: 5,        // 5MB par appel enregistré
+              locations: 0.01, // 10KB par localisation
+              photos: 3,       // 3MB par photo
+              messaging: 0.5,  // 500KB par message
+              remote: 2,       // 2MB par outil distant
+              live: 10,        // 10MB par flux
+              files: 1,        // 1MB par fichier
+              restrictions: 0.1,
+              applications: 0.5,
+              web: 0.05,
+              calendar: 0.1,
+              contacts: 0.05,
+              analytics: 0.5
+            };
+            
+            totalSize += fileCount * (sizeMultipliers[category] || 0.5);
+          }
+        });
+      });
+      
+      // Calculer le délai estimé (4-24 heures, proportionnel à la taille)
+      const baseTime = 4; // heures
+      const maxTime = 24; // heures
+      let estimatedTime = baseTime + (totalSize / 1000) * (maxTime - baseTime);
+      estimatedTime = Math.min(maxTime, Math.max(baseTime, estimatedTime));
+      
+      // Mettre à jour l'affichage
+      document.getElementById('summaryTargets').textContent = selectedTargets.length;
+      document.getElementById('summaryCategories').textContent = selectedCategories;
+      document.getElementById('summaryFiles').textContent = totalFiles.toLocaleString();
+      document.getElementById('summarySize').textContent = Math.round(totalSize) + ' MB';
+      document.getElementById('summaryTime').textContent = Math.round(estimatedTime) + ' heures';
+    }
+    
+    // Réinitialiser le processus de téléchargement
+    function resetDownloadProcess() {
+      // Arrêter les timers
+      if (downloadTimer) {
+        clearTimeout(downloadTimer);
+        downloadTimer = null;
+      }
+      
+      if (downloadProgressInterval) {
+        clearInterval(downloadProgressInterval);
+        downloadProgressInterval = null;
+      }
+      
+      // Réinitialiser l'état
+      downloadInProgress = false;
+      
+      // Masquer la barre de progression
+      const progressSection = document.getElementById('progressSection');
+      progressSection.style.display = 'none';
+      
+      // Masquer le message de succès
+      document.getElementById('downloadSuccess').classList.remove('show');
+      
+      // Réinitialiser le lien de téléchargement
+      document.getElementById('downloadLinkContainer').innerHTML = '';
+      
+      // Réactiver le bouton de téléchargement
+      document.getElementById('startDownloadBtn').disabled = false;
+      document.getElementById('startDownloadBtn').style.display = 'flex';
+      
+      // Masquer les boutons d'arrêt et nouveau téléchargement
+      document.getElementById('stopDownloadBtn').style.display = 'none';
+      document.getElementById('newDownloadBtn').style.display = 'none';
+      
+      // Afficher les autres boutons
+      document.getElementById('saveConfigBtn').style.display = 'inline-flex';
+      document.getElementById('resetSelectionBtn').style.display = 'inline-flex';
+    }
+    
+    // Lancer le téléchargement
+    document.getElementById('startDownloadBtn').addEventListener('click', function() {
+      if (downloadInProgress) {
+        alert('Un téléchargement est déjà en cours.');
+        return;
+      }
+      
+      if (selectedTargets.length === 0) {
+        alert('Veuillez sélectionner au moins une cible.');
+        return;
+      }
+      
+      const selectedCheckboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked');
+      if (selectedCheckboxes.length === 0) {
+        alert('Veuillez sélectionner au moins une catégorie de fichiers.');
+        return;
+      }
+      
+      // Confirmation
+      if (!confirm(`Confirmer le téléchargement de ${selectedTargets.length} cible(s) avec ${selectedCheckboxes.length} catégorie(s) sélectionnée(s) ?\n\nLe délai estimé est de ${document.getElementById('summaryTime').textContent}.`)) {
+        return;
+      }
+      
+      // Désactiver le bouton
+      this.disabled = true;
+      this.style.display = 'none';
+      downloadInProgress = true;
+      
+      // Afficher le bouton d'arrêt
+      document.getElementById('stopDownloadBtn').style.display = 'flex';
+      
+      // Masquer les autres boutons
+      document.getElementById('saveConfigBtn').style.display = 'none';
+      document.getElementById('resetSelectionBtn').style.display = 'none';
+      document.getElementById('newDownloadBtn').style.display = 'none';
+      
+      // Afficher la section de progression
+      const progressSection = document.getElementById('progressSection');
+      const progressBar = document.getElementById('downloadProgressBar');
+      const progressStatus = document.getElementById('progressStatus');
+      const countdown = document.getElementById('downloadCountdown');
+      
+      progressSection.style.display = 'block';
+      progressBar.style.width = '0%';
+      
+      // Masquer le message de succès s'il était affiché
+      document.getElementById('downloadSuccess').classList.remove('show');
+      
+      // Calculer le temps estimé en millisecondes
+      const timeText = document.getElementById('summaryTime').textContent;
+      const hours = parseInt(timeText);
+      const totalMs = hours * 60 * 60 * 1000; // Convertir en millisecondes
+      
+      let startTime = Date.now();
+      let endTime = startTime + totalMs;
+      
+      progressStatus.textContent = 'Préparation des fichiers...';
+      
+      // Mettre à jour la progression chaque seconde
+      downloadProgressInterval = setInterval(() => {
+        const now = Date.now();
+        const elapsed = now - startTime;
+        const progress = Math.min(100, (elapsed / totalMs) * 100);
+        
+        progressBar.style.width = progress + '%';
+        
+        // Calculer le temps restant
+        const remaining = Math.max(0, endTime - now);
+        const hoursRemaining = Math.floor(remaining / 3600000);
+        const minutesRemaining = Math.floor((remaining % 3600000) / 60000);
+        const secondsRemaining = Math.floor((remaining % 60000) / 1000);
+        
+        countdown.textContent = 
+          `${hoursRemaining.toString().padStart(2, '0')}:${minutesRemaining.toString().padStart(2, '0')}:${secondsRemaining.toString().padStart(2, '0')}`;
+        
+        // Mettre à jour le statut selon la progression
+        if (progress < 20) {
+          progressStatus.textContent = 'Collecte des métadonnées...';
+        } else if (progress < 40) {
+          progressStatus.textContent = 'Extraction des fichiers...';
+        } else if (progress < 60) {
+          progressStatus.textContent = 'Compression des données...';
+        } else if (progress < 80) {
+          progressStatus.textContent = 'Chiffrement des fichiers...';
+        } else {
+          progressStatus.textContent = 'Finalisation...';
+        }
+        
+        if (now >= endTime) {
+          clearInterval(downloadProgressInterval);
+          completeDownload();
+        }
+      }, 1000);
+      
+      // Lancer le téléchargement avec un délai
+      downloadTimer = setTimeout(() => {
+        clearInterval(downloadProgressInterval);
+        completeDownload();
+      }, totalMs);
+    });
+    
+    // Compléter le téléchargement
+    function completeDownload() {
+      // Simuler la fin du téléchargement
+      const progressBar = document.getElementById('downloadProgressBar');
+      const progressStatus = document.getElementById('progressStatus');
+      
+      progressBar.style.width = '100%';
+      progressStatus.textContent = 'Téléchargement prêt !';
+      
+      // Créer un fichier ZIP fictif
+      const currentUser = SessionManager.getCurrentUser();
+      const selectedTargetsData = TargetDatabase.getUserTargets(currentUser.id, currentUser.role)
+        .filter(t => selectedTargets.includes(t.id));
+      
+      const fileName = `eagle_download_${Date.now()}.zip`;
+      const fileSize = document.getElementById('summarySize').textContent;
+      
+      // Afficher le lien de téléchargement
+      const downloadLinkContainer = document.getElementById('downloadLinkContainer');
+      downloadLinkContainer.innerHTML = `
+        <a href="#" class="download-link" id="downloadFileLink">
+          <i class="fas fa-file-archive"></i>
+          <div>
+            <div style="font-weight:600">${fileName}</div>
+            <div class="meta">${fileSize} • ${selectedTargets.length} cible(s) • ${document.getElementById('summaryFiles').textContent} fichiers</div>
+          </div>
+          <div style="margin-left:auto">
+            <i class="fas fa-download"></i>
+          </div>
+        </a>
+      `;
+      
+      // Afficher le message de succès
+      document.getElementById('downloadSuccess').classList.add('show');
+      
+      // Gérer le clic sur le lien de téléchargement
+      document.getElementById('downloadFileLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const currentUser = SessionManager.getCurrentUser();
+        const selectedTargetsData = TargetDatabase.getUserTargets(currentUser.id, currentUser.role)
+          .filter(t => selectedTargets.includes(t.id));
+        
+        const targetNames = selectedTargetsData.map(t => t.owner).join(', ');
+        
+        alert(`Téléchargement simulé : ${fileName}\n\nContenu :\n- Cibles: ${targetNames}\n- ${selectedTargets.length} cible(s)\n- ${document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked').length} catégorie(s)\n- ${document.getElementById('summaryFiles').textContent} fichiers\n- Taille: ${fileSize}`);
+        
+        // Simulation de téléchargement
+        const blob = new Blob([`Fichier simulé: ${fileName}\nContenu: Données de ${selectedTargets.length} cibles`], { type: 'application/zip' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+      
+      // Réinitialiser l'état
+      downloadInProgress = false;
+      
+      // Afficher le bouton pour nouveau téléchargement
+      document.getElementById('stopDownloadBtn').style.display = 'none';
+      document.getElementById('newDownloadBtn').style.display = 'flex';
+    }
+    
+    // Arrêter le téléchargement
+    document.getElementById('stopDownloadBtn').addEventListener('click', function() {
+      if (confirm('Voulez-vous vraiment arrêter le téléchargement en cours ?')) {
+        resetDownloadProcess();
+        alert('Téléchargement arrêté. Vous pouvez maintenant sélectionner de nouvelles options.');
+      }
+    });
+    
+    // Nouveau téléchargement
+    document.getElementById('newDownloadBtn').addEventListener('click', function() {
+      resetDownloadProcess();
+      this.style.display = 'none';
+      document.getElementById('startDownloadBtn').style.display = 'flex';
+      document.getElementById('saveConfigBtn').style.display = 'inline-flex';
+      document.getElementById('resetSelectionBtn').style.display = 'inline-flex';
+      alert('Prêt pour un nouveau téléchargement. Modifiez vos sélections si nécessaire.');
+    });
+    
+    // Sauvegarder la configuration
+    document.getElementById('saveConfigBtn').addEventListener('click', function() {
+      const config = {
+        selectedTargets: selectedTargets,
+        selectedCategories: Array.from(document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked')).map(cb => cb.id),
+        selectionMode: isMultiSelect ? 'multiple' : 'single',
+        timestamp: new Date().toISOString()
+      };
+      
+      localStorage.setItem('eagle_download_config', JSON.stringify(config));
+      alert('Configuration sauvegardée avec succès !');
+    });
+    
+    // Charger la configuration sauvegardée
+    function loadSavedConfig() {
+      const savedConfig = localStorage.getItem('eagle_download_config');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        
+        // Restaurer le mode de sélection
+        if (config.selectionMode === 'multiple') {
+          document.getElementById('selectMultiple').click();
+        } else {
+          document.getElementById('selectSingle').click();
+        }
+        
+        // Restaurer les cibles sélectionnées
+        if (config.selectedTargets && config.selectedTargets.length > 0) {
+          selectedTargets = config.selectedTargets;
+          
+          document.querySelectorAll('.target-item').forEach(item => {
+            const checkbox = item.querySelector('.target-checkbox');
+            if (checkbox && config.selectedTargets.includes(item.dataset.targetId)) {
+              checkbox.checked = true;
+            }
+          });
+        }
+        
+        // Restaurer les catégories sélectionnées
+        if (config.selectedCategories && config.selectedCategories.length > 0) {
+          document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+            cb.checked = config.selectedCategories.includes(cb.id);
+          });
+        }
+        
+        updateDownloadSummary();
+      }
+    }
+    
+    // Réinitialiser la sélection
+    document.getElementById('resetSelectionBtn').addEventListener('click', function() {
+      if (confirm('Voulez-vous vraiment réinitialiser toute la sélection ?')) {
+        selectedTargets = [];
+        isMultiSelect = false;
+        document.getElementById('selectSingle').click();
+        
+        document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+        });
+        
+        document.querySelectorAll('.target-item').forEach(item => {
+          item.classList.remove('selected');
+          const checkbox = item.querySelector('.target-checkbox');
+          if (checkbox) checkbox.checked = false;
+        });
+        
+        updateDownloadSummary();
+        
+        // Réinitialiser aussi le processus de téléchargement s'il est en cours
+        if (downloadInProgress) {
+          resetDownloadProcess();
+        }
+      }
+    });
+    
+    // Actualiser le récapitulatif
+    document.getElementById('updateSummary').addEventListener('click', function() {
+      updateDownloadSummary();
+    });
+    
+    // Mettre à jour le récapitulatif quand les cases sont cochées/décochées
+    document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', updateDownloadSummary);
+    });
+    
+    // Initialisation au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+      loadSavedConfig();
+      
+      // Charger les cibles si nous sommes sur l'onglet téléchargements
+      const currentTab = document.querySelector('.nav-links a.active');
+      if (currentTab && currentTab.getAttribute('data-tab') === 'downloads') {
+        loadTargetsList();
+        updateDownloadSummary();
+      }
+    });
+  </script>
+</body>
+</html>
